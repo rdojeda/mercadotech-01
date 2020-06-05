@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+		<title>MercadoTECH - Tu e-shop.js</title>
+		<link rel="stylesheet" href="https://blackrockdigital.github.io/startbootstrap-shop-item/vendor/bootstrap/css/bootstrap.min.css">
+		<link rel="stylesheet" href="https://blackrockdigital.github.io/startbootstrap-shop-item/css/shop-item.css">
+		<style>
+			article {
+				opacity: 0;
+				animation: fadeIn 3s forwards;
+			}
+			@keyframes fadeIn {
+				from { opacity: 0 }
+				to { opacity: 1 }
+			}
+		</style>
+	</head>
+
+	<body>
+		<header class="navbar navbar-expand-lg navbar-dark bg-secondary fixed-top">
+			<div class="container">
+				<a class="navbar-brand font-weight-bold" href="#">&#x1F5A5; MercadoTECH</a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Menu">
+					<span class="navbar-toggler-icon"></span>
+				</button>
+				<nav class="collapse navbar-collapse" id="menu">
+					<ul class="navbar-nav ml-auto">
+						<li class="nav-item">
+							<a id="login" class="nav-link" href="#">&#x1F512; Ingresar</a>
+						</li>
+						<li class="nav-item">
+							<a id="logout" class="nav-link d-none" href="#">Bienvenid@ <span>{{USUARIO}}</span> [x]</a>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+		<main class="container">
+			<h2 class="w-100 my-3 p-3 border">&#x2B50; Productos Destacados</h2>
+			<nav id="filtros">
+				<button class="btn btn-secondary" data-min="0" data-max="999999">Todos</button>
+				<button class="btn btn-secondary" data-min="0" data-max="500">$0 - $500</button>
+				<button class="btn btn-secondary" data-min="500" data-max="1500">$500 - $1500</button>
+				<button class="btn btn-secondary" data-min="1500" data-max="999999">+ $1500</button>
+			</nav>
+			<!-- AREA PRODUCTOS DESTACADOS -->
+			<section id="productos-destacados" class="row py-3">
+				
+			</section>
+			<!-- AREA FICHA COMPLETA PRODUCTO -->
+			<section id="producto" class="row py-3 d-none">
+				<div class="col-9">
+					<div class="card">
+						<img id="producto-imagen" class="card-img-top img-fluid" src="{{IMAGEN}}" alt="">
+						<div class="card-body">
+							<h3 class="card-title" id="producto-nombre">{{NOMBRE}}</h3>
+							<h4 id="producto-precio">{{PRECIO}}</h4>
+							<p id="producto-detalle" class="card-text">{{DETALLE}}</p>
+						</div>
+					</div>
+				</div>		
+				<div class="col-3">
+					<button class="btn btn-primary btn-lg btn-block">Confirmar Compra</button>
+				</div>
+			</section>
+		</main>
+		<footer class="py-5 bg-dark">
+			<div class="container">
+				<p class="m-0 text-center text-white">¡La mejor manera de comprar online!</p>
+			</div>
+		</footer>
+		<script src="https://blackrockdigital.github.io/startbootstrap-shop-item/vendor/jquery/jquery.min.js"></script>
+		<script src="https://blackrockdigital.github.io/startbootstrap-shop-item/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+		<script src="https://apis.google.com/js/api:client.js"></script>
+		<script src="producto.class.js"></script>
+		<script>
+				////////////////////////////////////////////////////////////////
+				window.auth2 = null
+
+				gapi.load("auth2", () => {
+					let credenciales = {
+						client_id: '909599252120-78uvnq8uts7c2da46bu4l9ouvvgcjo4j.apps.googleusercontent.com',
+						cookiepolicy: 'single_host_origin'
+					}
+
+					window.auth2 = gapi.auth2.init( credenciales ) //<-- Inicializar con las credenciales asincronicamente...
+					
+					window.auth2.then(() => { //<-- Chequear si esta logeado luego de inicializar con las credenciales...
+						
+						if( window.auth2.isSignedIn.get() ){ //<-- Si ya está logeado...
+							welcome()
+						} else {
+							console.log("No estas logeado :(")
+						}
+
+					})
+
+				})
+
+				//Boton de Login
+				document.querySelector("#login").onclick = e => {
+					e.preventDefault()
+					
+					window.auth2.signIn().then( welcome )
+				}
+
+				//Boton de Logout
+				document.querySelector("#logout").onclick = e => {
+					e.preventDefault()
+
+					window.auth2.signOut()
+
+					document.querySelector("#login").classList.remove("d-none")
+					document.querySelector("#logout").classList.add("d-none")
+
+					document.querySelectorAll(".btn-editar").forEach(btn => {
+						btn.classList.remove("d-block")
+						btn.classList.add("d-none")
+					})
+				}
+
+				//Bienvenida
+				const welcome = () => {
+					window.user = window.auth2.currentUser.get().getBasicProfile()
+
+					document.querySelector("#logout span").innerText = window.user.getName()
+
+					document.querySelector("#login").classList.add("d-none")
+					document.querySelector("#logout").classList.remove("d-none")
+
+					document.querySelectorAll(".btn-editar").forEach(btn => {
+						btn.classList.remove("d-none")
+					})
+				}
+				///////////////////////////////////////////////////////////////
+				const GET = async url => {
+					let rta = await fetch(url) //<-- Obtengo contenido en formato JSON
+					return await rta.json() //<-- Retornar convertido de JSON a Objetos genericos
+				}				
+				const aguanta = timeout => { //aguanta(3000)
+					return new Promise( resolve => setTimeout(resolve, timeout) )
+				}
+				const mostrarCatalogo = async rango => {
+					let objetos = null
+					if( !localStorage.getItem("CATALOGO") ){ //<-- Si NO hay un Local Storage ...
+						// ↓ Un Array de muchos Object
+						objetos = await GET("productos.json")
+						localStorage.setItem("CATALOGO", JSON.stringify(objetos) )
+
+					} else { //<-- Si EFECTIVAMENTE hay un Local Storage ...
+
+						objetos = JSON.parse( localStorage.getItem("CATALOGO") ) 
+					
+					}
+					
+					let catalogo = Producto.armarCatalogo(objetos, rango)
+
+					if( catalogo instanceof Array ){ //<-- Si el resultado es una array
+
+						catalogo.forEach( async producto => {
+							await producto.Mostrar()
+						})
+
+					} else {
+						catalogo.Mostrar()
+					}
+
+				}
+				/////////////////////////////////
+				document.querySelectorAll("#filtros button").forEach(filtro => {
+					filtro.onclick = evento => {
+						let rango = {
+							min : evento.target.getAttribute("data-min"),
+							max : evento.target.getAttribute("data-max")
+						}
+						document.querySelector("#productos-destacados").innerHTML = null
+						mostrarCatalogo(rango)
+					}
+				})
+
+				mostrarCatalogo()
+
+
+				window.onpopstate = () => {
+					const catalogo = document.querySelector("#productos-destacados")
+					const ficha = document.querySelector("#producto")
+
+					if( window.location.pathname == "/" ){
+						catalogo.classList.remove("d-none") //<-- Visible
+						ficha.classList.add("d-none") //<-- Oculta
+					} else {
+						catalogo.classList.add("d-none") //<-- Oculto
+						ficha.classList.remove("d-none") //<-- Visible
+					}
+				}
+		</script>
+	</body>
+</html>
+
+
+
+
